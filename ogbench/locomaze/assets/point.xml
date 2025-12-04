@@ -18,7 +18,8 @@
         <material name="self" rgba=".7 .5 .3 1"/>
         <material name="geom" texture="texgeom" texuniform="true"/>
         <material name="wall" rgba="1 1 1 1"/>
-        <material name="target" rgba="0.96 0.26 0.33 1"/>
+        <material name="danger" rgba="0.9 0.1 0.1 1"/>
+        <material name="target" rgba="0.2 0.9 0.33 1"/>
         <material name="teleport_in" texture="teleport_in"/>
         <material name="teleport_out" texture="teleport_out"/>
     </asset>
