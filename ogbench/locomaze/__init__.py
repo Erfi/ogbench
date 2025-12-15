@@ -44,6 +44,18 @@ register(
         maze_type="medium",
     ),
 )
+
+register(
+    id="visual-pointmaze-medium-v0",
+    entry_point="ogbench.locomaze.maze:make_maze_env",
+    max_episode_steps=1000,
+    kwargs=dict(
+        loco_env_type="point",
+        maze_env_type="maze",
+        maze_type="medium",
+        **visual_dict,
+    ),
+)
 register(
     id="pointmaze-large-v0",
     entry_point="ogbench.locomaze.maze:make_maze_env",
