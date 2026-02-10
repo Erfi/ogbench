@@ -326,6 +326,12 @@ or 5-12 hours (on pixel-based tasks) on a single A5000 GPU.
 For large pixel-based datasets (e.g., `visual-puzzle-4x6-play-v0` with 5M transitions),
 up to 120GB of RAM may be required.
 
+> [!NOTE]
+> If you are running on a remote/headless server without a display, you can use EGL for rendering by setting the `MUJOCO_GL` environment variable:
+> ```shell
+> MUJOCO_GL=egl python main.py --env_name=antmaze-large-navigate-v0 --agent=agents/gcbc.py
+> ```
+
 ### Tips for hyperparameters and flags
 
 To reproduce the results in the paper, you need to use the hyperparameters provided.
