@@ -109,6 +109,18 @@ def make_maze_env(loco_env_type, maze_env_type, *args, **kwargs):
                     [1, 0, 1, 0, 0, 0, 0, 1],
                     [1, 1, 1, 1, 1, 1, 1, 1],
                 ]
+            elif self._maze_type == "rooms":
+                maze_map = [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 1, 0, 1, 1, 1, 0, 1, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1],
+                ]
             elif self._maze_type == "medium":
                 maze_map = [
                     [1, 1, 1, 1, 1, 1, 1, 1],
@@ -329,34 +341,24 @@ def make_maze_env(loco_env_type, maze_env_type, *args, **kwargs):
                     conaffinity="0",
                 )
 
+        def random_tasks(self, num_tasks, min_dist=2):
+            tasks = []
+            free_cells = np.argwhere(self.maze_map == 0)
+            while len(tasks) < num_tasks:
+                init_ij, goal_ij = free_cells[np.random.choice(len(free_cells), size=2, replace=False)]
+                dist = np.linalg.norm(np.array(init_ij) - np.array(goal_ij), ord=1)
+                if dist > min_dist:  # Only add tasks that are sufficiently far apart
+                    tasks.append([tuple(init_ij), tuple(goal_ij)])
+            return tasks
+
         def set_tasks(self):
             # `tasks` is a list of tasks, where each task is a list of two tuples: (init_ij, goal_ij).
             if self._maze_type == "arena":
-                tasks = [
-                    [(1, 1), (6, 6)],
-                    [(6, 6), (1, 1)],
-                    [(1, 6), (6, 1)],
-                    [(6, 1), (1, 6)],
-                    [(2, 3), (5, 3)],
-                    [(5, 3), (2, 3)],
-                    [(3, 2), (3, 5)],
-                    [(3, 5), (3, 2)],
-                ]
+                tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "wall":
-                tasks = [
-                    [(1, 1), (6, 6)],
-                    [(6, 6), (1, 1)],
-                    [(1, 6), (6, 1)],
-                    [(6, 1), (1, 6)],
-                    [(2, 3), (5, 4)],
-                    [(5, 4), (2, 3)],
-                    [(3, 2), (3, 5)],
-                    [(3, 5), (3, 2)],
-                    [(3, 3), (5, 5)],
-                    [(5, 5), (3, 3)],
-                    [(1, 1), (1, 5)],
-                    [(1, 5), (1, 1)],
-                ]
+                tasks = self.random_tasks(num_tasks=100, min_dist=2)
+            elif self._maze_type == "rooms":
+                tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "medium":
                 tasks = [
                     [(1, 1), (6, 6)],

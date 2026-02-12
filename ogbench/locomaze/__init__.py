@@ -55,6 +55,29 @@ register(
         **visual_dict,
     ),
 )
+
+register(
+    id="pointmaze-rooms-v0",
+    entry_point="ogbench.locomaze.maze:make_maze_env",
+    max_episode_steps=1000,
+    kwargs=dict(
+        loco_env_type="point",
+        maze_env_type="maze",
+        maze_type="rooms",
+    ),
+)
+register(
+    id="visual-pointmaze-rooms-v0",
+    entry_point="ogbench.locomaze.maze:make_maze_env",
+    max_episode_steps=1000,
+    kwargs=dict(
+        loco_env_type="point",
+        maze_env_type="maze",
+        maze_type="rooms",
+        **visual_dict,
+    ),
+)
+
 register(
     id="pointmaze-medium-v0",
     entry_point="ogbench.locomaze.maze:make_maze_env",
