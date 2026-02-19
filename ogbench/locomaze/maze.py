@@ -360,13 +360,7 @@ def make_maze_env(loco_env_type, maze_env_type, *args, **kwargs):
             elif self._maze_type == "rooms":
                 tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "medium":
-                tasks = [
-                    [(1, 1), (6, 6)],
-                    [(6, 1), (1, 6)],
-                    [(5, 3), (4, 2)],
-                    [(6, 5), (6, 1)],
-                    [(2, 6), (1, 1)],
-                ]
+                tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "large":
                 tasks = [
                     [(1, 1), (7, 10)],
