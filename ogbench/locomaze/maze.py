@@ -362,13 +362,7 @@ def make_maze_env(loco_env_type, maze_env_type, *args, **kwargs):
             elif self._maze_type == "medium":
                 tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "large":
-                tasks = [
-                    [(1, 1), (7, 10)],
-                    [(5, 4), (7, 1)],
-                    [(7, 4), (1, 10)],
-                    [(3, 8), (5, 4)],
-                    [(1, 1), (5, 4)],
-                ]
+                tasks = self.random_tasks(num_tasks=100, min_dist=2)
             elif self._maze_type == "giant":
                 tasks = [
                     [(1, 1), (10, 14)],
