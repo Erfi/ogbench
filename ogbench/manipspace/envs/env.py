@@ -43,6 +43,7 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
         self._camera = mujoco.MjvCamera()
         self._render_height = height
         self._render_width = width
+        self.render_mode = render_mode
 
         self.set_timesteps(
             physics_timestep=float(physics_timestep),
@@ -147,8 +148,8 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
 
     def compile_model_and_data(self):
         """Compile the MJCF model into MjModel and MjData objects."""
-        getattr(self._mjcf_model.visual, 'global').offwidth = self._render_width
-        getattr(self._mjcf_model.visual, 'global').offheight = self._render_height
+        getattr(self._mjcf_model.visual, "global").offwidth = self._render_width
+        getattr(self._mjcf_model.visual, "global").offheight = self._render_height
 
         self._model = mujoco.MjModel.from_xml_string(
             xml=mjcf_utils.to_string(self._mjcf_model),
@@ -164,7 +165,7 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
 
         # Make sure the passive viewer is up-to-date.
         if self._passive_viewer_handle is not None:
-            self._passive_viewer_handle._sim().load(self._model, self._data, '')
+            self._passive_viewer_handle._sim().load(self._model, self._data, "")
 
         # Re-initialize the renderer.
         if self._renderer is not None:
@@ -278,8 +279,8 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
         rounded_n_steps = int(round(n_steps))
         if abs(n_steps - rounded_n_steps) > 1e-6:
             raise ValueError(
-                f'Control timestep {control_timestep} should be an integer multiple of '
-                f'physics timestep {physics_timestep}.'
+                f"Control timestep {control_timestep} should be an integer multiple of "
+                f"physics timestep {physics_timestep}."
             )
 
         self._physics_timestep = physics_timestep
@@ -292,21 +293,21 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
     def model(self) -> mujoco.MjModel:
         """Return the MjModel object."""
         if self._model is None:
-            raise ValueError('MjModel object not yet initialized. Call `reset` to initialize.')
+            raise ValueError("MjModel object not yet initialized. Call `reset` to initialize.")
         return self._model
 
     @property
     def data(self) -> mujoco.MjData:
         """Return the MjData object."""
         if self._data is None:
-            raise ValueError('MjData object not yet initialized. Call `reset` to initialize.')
+            raise ValueError("MjData object not yet initialized. Call `reset` to initialize.")
         return self._data
 
     @property
     def mjcf_model(self) -> mjcf.RootElement:
         """Return the root element of the MJCF model."""
         if self._mjcf_model is None:
-            raise ValueError('MJCF model not yet initialized. Call `reset` to initialize.')
+            raise ValueError("MJCF model not yet initialized. Call `reset` to initialize.")
         return self._mjcf_model
 
     def physics_timestep(self) -> float:
@@ -322,14 +323,14 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
     def launch_passive_viewer(self, *args, **kwargs):
         """Launch a passive viewer for the environment."""
         if self._passive_viewer_handle is not None:
-            raise ValueError('Passive viewer already launched.')
+            raise ValueError("Passive viewer already launched.")
         if self._model is None or self._data is None:
-            raise ValueError('Call `reset` before launching the passive viewer.')
+            raise ValueError("Call `reset` before launching the passive viewer.")
         self._passive_viewer_handle = mujoco.viewer.launch_passive(
             self._model,
             self._data,
-            show_left_ui=kwargs.pop('show_left_ui', False),
-            show_right_ui=kwargs.pop('show_right_ui', False),
+            show_left_ui=kwargs.pop("show_left_ui", False),
+            show_right_ui=kwargs.pop("show_right_ui", False),
             *args,
             **kwargs,
         )
@@ -337,7 +338,7 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
     def sync_passive_viewer(self):
         """Sync the passive viewer with the current state of the environment."""
         if self._passive_viewer_handle is None:
-            raise ValueError('Passive viewer not launched.')
+            raise ValueError("Passive viewer not launched.")
         self._passive_viewer_handle.sync()
 
     def close_passive_viewer(self):
@@ -362,7 +363,7 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
     def _initialize_renderer(self):
         """Initialize the renderer."""
         if self._model is None:
-            raise ValueError('Call `reset` before rendering.')
+            raise ValueError("Call `reset` before rendering.")
         self._renderer = mujoco.Renderer(model=self._model, height=self._render_height, width=self._render_width)
         mujoco.mjv_defaultFreeCamera(self._model, self._camera)
 
@@ -376,13 +377,13 @@ class CustomMuJoCoEnv(gym.Env, abc.ABC):
     ) -> np.ndarray:
         """Render the current state of the environment."""
         if self._model is None or self._data is None:
-            raise ValueError('Call `reset` before render.')
+            raise ValueError("Call `reset` before render.")
 
         if self._renderer is None:
             self._initialize_renderer()
 
         if depth and segmentation:
-            raise ValueError('Only one of depth or segmentation can be enabled.')
+            raise ValueError("Only one of depth or segmentation can be enabled.")
         if depth:
             self._renderer.enable_depth_rendering()
         elif segmentation:
