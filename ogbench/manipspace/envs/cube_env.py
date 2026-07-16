@@ -74,6 +74,57 @@ class CubeEnv(ManipSpaceEnv):
         # The target cube position is stored in the mocap object.
         self._target_block = 0
 
+    def _random_tasks_single_cube(self, num_tasks: int) -> dict:
+        """
+        Generates random tasks for the single cube environment.
+        """
+        tasks = []
+        for i in range(num_tasks):
+            # Randomize the initial position of the cube.
+            init_xy = self.np_random.uniform(*self._object_sampling_bounds)
+            init_xyz = np.array([[*init_xy, 0.02]])
+            # Randomize the goal position of the cube.
+            goal_xy = self.np_random.uniform(*self._target_sampling_bounds)
+            goal_xyz = np.array([[*goal_xy, 0.02]])
+            tasks.append(
+                {
+                    "task_name": f"random_task_{i}",
+                    "init_xyzs": init_xyz,
+                    "goal_xyzs": goal_xyz,
+                }
+            )
+        return tasks
+
+    def _random_tasks_double_cube(self, num_tasks: int) -> dict:
+        """
+        Generates random tasks for the double cube environment.
+        NOTE: If two blocks are very close to each other then they must be stacked on top of each other.
+        Otherwise, the blocks will collide with each other.
+        """
+        tasks = []
+        for i in range(num_tasks):
+            # Randomize the initial positions of the cubes.
+            init_xy1 = self.np_random.uniform(*self._object_sampling_bounds)
+            init_xy2 = self.np_random.uniform(*self._object_sampling_bounds)
+            init_xyzs = np.array([[*init_xy1, 0.02], [*init_xy2, 0.02]])
+            # Randomize the goal positions of the cubes.
+            goal_xy1 = self.np_random.uniform(*self._target_sampling_bounds)
+            goal_xy2 = self.np_random.uniform(*self._target_sampling_bounds)
+            goal_xyzs = np.array([[*goal_xy1, 0.02], [*goal_xy2, 0.02]])
+            # For both initial and goal positions, if the two cubes are very close to each other, then stack them on top of each other.
+            if np.linalg.norm(init_xy1 - init_xy2) < 0.04:
+                init_xyzs[1][2] = 0.06
+            if np.linalg.norm(goal_xy1 - goal_xy2) < 0.04:
+                goal_xyzs[1][2] = 0.06
+            tasks.append(
+                {
+                    "task_name": f"random_task_{i}",
+                    "init_xyzs": init_xyzs,
+                    "goal_xyzs": goal_xyzs,
+                }
+            )
+        return tasks
+
     def set_tasks(self):
         if self._env_type == "single":
             self.task_infos = [
@@ -103,6 +154,9 @@ class CubeEnv(ManipSpaceEnv):
                     goal_xyzs=np.array([[0.50, -0.2, 0.02]]),
                 ),
             ]
+            random_tasks = self._random_tasks_single_cube(num_tasks=100)
+            self.task_infos.extend(random_tasks)
+
         elif self._env_type == "double":
             self.task_infos = [
                 dict(
@@ -181,6 +235,8 @@ class CubeEnv(ManipSpaceEnv):
                     ),
                 ),
             ]
+            random_tasks = self._random_tasks_double_cube(num_tasks=100)
+            self.task_infos.extend(random_tasks)
         elif self._env_type == "triple":
             self.task_infos = [
                 dict(
@@ -523,17 +579,25 @@ class CubeEnv(ManipSpaceEnv):
             cube_mjcf.find("body", "object_target_0").pos[1] = pos
             for tag in ["body", "joint", "geom", "site"]:
                 for item in cube_mjcf.find_all(tag):
-                    if hasattr(item, "name") and item.name is not None and item.name.endswith("_0"):
+                    if (
+                        hasattr(item, "name")
+                        and item.name is not None
+                        and item.name.endswith("_0")
+                    ):
                         item.name = item.name[:-2] + f"_{i}"
             arena_mjcf.include_copy(cube_mjcf)
 
         # Save cube geoms.
         self._cube_geoms_list = []
         for i in range(self._num_cubes):
-            self._cube_geoms_list.append(arena_mjcf.find("body", f"object_{i}").find_all("geom"))
+            self._cube_geoms_list.append(
+                arena_mjcf.find("body", f"object_{i}").find_all("geom")
+            )
         self._cube_target_geoms_list = []
         for i in range(self._num_cubes):
-            self._cube_target_geoms_list.append(arena_mjcf.find("body", f"object_target_{i}").find_all("geom"))
+            self._cube_target_geoms_list.append(
+                arena_mjcf.find("body", f"object_target_{i}").find_all("geom")
+            )
 
         # Add cameras.
         cameras = {
@@ -552,10 +616,12 @@ class CubeEnv(ManipSpaceEnv):
     def post_compilation_objects(self):
         # Cube geom IDs.
         self._cube_geom_ids_list = [
-            [self._model.geom(geom.full_identifier).id for geom in cube_geoms] for cube_geoms in self._cube_geoms_list
+            [self._model.geom(geom.full_identifier).id for geom in cube_geoms]
+            for cube_geoms in self._cube_geoms_list
         ]
         self._cube_target_mocap_ids = [
-            self._model.body(f"object_target_{i}").mocapid[0] for i in range(self._num_cubes)
+            self._model.body(f"object_target_{i}").mocapid[0]
+            for i in range(self._num_cubes)
         ]
         self._cube_target_geom_ids_list = [
             [self._model.geom(geom.full_identifier).id for geom in cube_target_geoms]
@@ -606,9 +672,13 @@ class CubeEnv(ManipSpaceEnv):
             self.initialize_arm()
             for i in range(self._num_cubes):
                 self._data.joint(f"object_joint_{i}").qpos[:3] = goal_xyzs[i]
-                self._data.joint(f"object_joint_{i}").qpos[3:] = lie.SO3.identity().wxyz.tolist()
+                self._data.joint(f"object_joint_{i}").qpos[
+                    3:
+                ] = lie.SO3.identity().wxyz.tolist()
                 self._data.mocap_pos[self._cube_target_mocap_ids[i]] = goal_xyzs[i]
-                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = lie.SO3.identity().wxyz.tolist()
+                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = (
+                    lie.SO3.identity().wxyz.tolist()
+                )
             mujoco.mj_forward(self._model, self._data)
 
             # Do a few random steps to make the scene stable.
@@ -617,7 +687,9 @@ class CubeEnv(ManipSpaceEnv):
 
             # Save the goal observation.
             self._cur_goal_ob = (
-                self.compute_oracle_observation() if self._use_oracle_rep else self.compute_observation()
+                self.compute_oracle_observation()
+                if self._use_oracle_rep
+                else self.compute_observation()
             )
             if self._render_goal:
                 self._cur_goal_rendered = self.render()
@@ -637,7 +709,9 @@ class CubeEnv(ManipSpaceEnv):
                 obj_ori = lie.SO3.from_z_radians(yaw).wxyz.tolist()
                 self._data.joint(f"object_joint_{i}").qpos[3:] = obj_ori
                 self._data.mocap_pos[self._cube_target_mocap_ids[i]] = goal_xyzs[i]
-                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = lie.SO3.identity().wxyz.tolist()
+                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = (
+                    lie.SO3.identity().wxyz.tolist()
+                )
 
         # Forward kinematics to update site positions.
         self.pre_step()
@@ -655,7 +729,12 @@ class CubeEnv(ManipSpaceEnv):
         """
         assert self._mode == "data_collection"
 
-        block_xyzs = np.array([self._data.joint(f"object_joint_{i}").qpos[:3] for i in range(self._num_cubes)])
+        block_xyzs = np.array(
+            [
+                self._data.joint(f"object_joint_{i}").qpos[:3]
+                for i in range(self._num_cubes)
+            ]
+        )
 
         # Compute the top blocks.
         top_blocks = []
@@ -663,7 +742,10 @@ class CubeEnv(ManipSpaceEnv):
             for j in range(self._num_cubes):
                 if i == j:
                     continue
-                if block_xyzs[j][2] > block_xyzs[i][2] and np.linalg.norm(block_xyzs[i][:2] - block_xyzs[j][:2]) < 0.02:
+                if (
+                    block_xyzs[j][2] > block_xyzs[i][2]
+                    and np.linalg.norm(block_xyzs[i][:2] - block_xyzs[j][:2]) < 0.02
+                ):
                     break
             else:
                 top_blocks.append(i)
@@ -674,7 +756,9 @@ class CubeEnv(ManipSpaceEnv):
         stack = len(top_blocks) >= 2 and self.np_random.uniform() < p_stack
         if stack:
             # Stack the target block on top of another block.
-            block_idx = self.np_random.choice(list(set(top_blocks) - {self._target_block}))
+            block_idx = self.np_random.choice(
+                list(set(top_blocks) - {self._target_block})
+            )
             block_pos = self._data.joint(f"object_joint_{block_idx}").qpos[:3]
             tar_pos = np.array([block_pos[0], block_pos[1], block_pos[2] + 0.04])
         else:
@@ -694,7 +778,9 @@ class CubeEnv(ManipSpaceEnv):
             else:
                 # Move the non-target blocks out of the way.
                 self._data.mocap_pos[self._cube_target_mocap_ids[i]] = (0, 0, -0.3)
-                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = lie.SO3.identity().wxyz.tolist()
+                self._data.mocap_quat[self._cube_target_mocap_ids[i]] = (
+                    lie.SO3.identity().wxyz.tolist()
+                )
 
         # Set the target colors.
         for i in range(self._num_cubes):
@@ -731,7 +817,9 @@ class CubeEnv(ManipSpaceEnv):
 
         # Adjust the colors of the cubes based on success.
         for i in range(self._num_cubes):
-            if self._visualize_info and (self._mode == "task" or i == self._target_block):
+            if self._visualize_info and (
+                self._mode == "task" or i == self._target_block
+            ):
                 for gid in self._cube_target_geom_ids_list[i]:
                     self._model.geom(gid).rgba[3] = 0.2
             else:
@@ -748,10 +836,18 @@ class CubeEnv(ManipSpaceEnv):
     def add_object_info(self, ob_info):
         # Cube positions and orientations.
         for i in range(self._num_cubes):
-            ob_info[f"privileged/block_{i}_pos"] = self._data.joint(f"object_joint_{i}").qpos[:3].copy()
-            ob_info[f"privileged/block_{i}_quat"] = self._data.joint(f"object_joint_{i}").qpos[3:].copy()
+            ob_info[f"privileged/block_{i}_pos"] = (
+                self._data.joint(f"object_joint_{i}").qpos[:3].copy()
+            )
+            ob_info[f"privileged/block_{i}_quat"] = (
+                self._data.joint(f"object_joint_{i}").qpos[3:].copy()
+            )
             ob_info[f"privileged/block_{i}_yaw"] = np.array(
-                [lie.SO3(wxyz=self._data.joint(f"object_joint_{i}").qpos[3:]).compute_yaw_radians()]
+                [
+                    lie.SO3(
+                        wxyz=self._data.joint(f"object_joint_{i}").qpos[3:]
+                    ).compute_yaw_radians()
+                ]
             )
 
         if self._mode == "data_collection":
@@ -760,9 +856,15 @@ class CubeEnv(ManipSpaceEnv):
 
             target_mocap_id = self._cube_target_mocap_ids[self._target_block]
             ob_info["privileged/target_block"] = self._target_block
-            ob_info["privileged/target_block_pos"] = self._data.mocap_pos[target_mocap_id].copy()
+            ob_info["privileged/target_block_pos"] = self._data.mocap_pos[
+                target_mocap_id
+            ].copy()
             ob_info["privileged/target_block_yaw"] = np.array(
-                [lie.SO3(wxyz=self._data.mocap_quat[target_mocap_id]).compute_yaw_radians()]
+                [
+                    lie.SO3(
+                        wxyz=self._data.mocap_quat[target_mocap_id]
+                    ).compute_yaw_radians()
+                ]
             )
 
     def compute_observation(self):
@@ -786,7 +888,8 @@ class CubeEnv(ManipSpaceEnv):
             for i in range(self._num_cubes):
                 ob.extend(
                     [
-                        (ob_info[f"privileged/block_{i}_pos"] - xyz_center) * xyz_scaler,
+                        (ob_info[f"privileged/block_{i}_pos"] - xyz_center)
+                        * xyz_scaler,
                         ob_info[f"privileged/block_{i}_quat"],
                         np.cos(ob_info[f"privileged/block_{i}_yaw"]),
                         np.sin(ob_info[f"privileged/block_{i}_yaw"]),
