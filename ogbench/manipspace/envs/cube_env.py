@@ -16,17 +16,19 @@ class CubeEnv(ManipSpaceEnv):
 
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
 
-    def __init__(self, env_type, permute_blocks=True, *args, **kwargs):
+    def __init__(self, env_type, permute_blocks=True, add_random_tasks=False, *args, **kwargs):
         """Initialize the Cube environment.
 
         Args:
             env_type: Environment type. One of 'single', 'double', 'triple', or 'quadruple'.
             permute_blocks: Whether to randomly permute the order of the blocks at task initialization.
+            add_random_tasks: Whether to add more random tasks to the original tasks list (currently for single and double cube environments).
             *args: Additional arguments to pass to the parent class.
             **kwargs: Additional keyword arguments to pass to the parent class.
         """
         self._env_type = env_type
         self._permute_blocks = permute_blocks
+        self._add_random_tasks = add_random_tasks
 
         if self._env_type == "single":
             self._num_cubes = 1
@@ -154,8 +156,9 @@ class CubeEnv(ManipSpaceEnv):
                     goal_xyzs=np.array([[0.50, -0.2, 0.02]]),
                 ),
             ]
-            random_tasks = self._random_tasks_single_cube(num_tasks=100)
-            self.task_infos.extend(random_tasks)
+            if self._add_random_tasks:
+                random_tasks = self._random_tasks_single_cube(num_tasks=100)
+                self.task_infos.extend(random_tasks)
 
         elif self._env_type == "double":
             self.task_infos = [
@@ -235,8 +238,9 @@ class CubeEnv(ManipSpaceEnv):
                     ),
                 ),
             ]
-            random_tasks = self._random_tasks_double_cube(num_tasks=100)
-            self.task_infos.extend(random_tasks)
+            if self._add_random_tasks:
+                random_tasks = self._random_tasks_double_cube(num_tasks=100)
+                self.task_infos.extend(random_tasks)
         elif self._env_type == "triple":
             self.task_infos = [
                 dict(
